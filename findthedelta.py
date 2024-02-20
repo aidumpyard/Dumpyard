@@ -60,3 +60,4 @@ def show_delta(n_clicks, left_file, right_file):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+    
