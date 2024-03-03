@@ -1,0 +1,3 @@
+pivot_file_path,pivot_sheet_name,pivot_table_name,data_file_path,data_sheet_name,data_range,status
+path\to\pivot_table_workbook1.xlsx,SheetWithPivotTable1,PivotTable1,path\to\new_data_workbook1.xlsx,SheetWithData1,A1:D100,active
+path\to\pivot_table_workbook2.xlsx,SheetWithPivotTable2,PivotTable2,path\to\new_data_workbook2.xlsx,SheetWithData2,A1:E200,active
