@@ -1,0 +1,69 @@
+import dash
+from dash import Dash, dcc, html, dash_table, Input, Output
+import pandas as pd
+
+# Sample data
+data = {
+    'tenure': [0] * 13 + [1] * 13,
+    'margin': [-20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40] * 2,
+    'CCY': ['USD', 'USD', 'USD', 'USD', 'EUR', 'EUR', 'USD', 'EUR', 'USD', 'USD', 'USD', 'USD', 'USD'] * 2,
+    'notional': [200, 200, 200, 200, 100, 300, 400, 500, 600, 600, 600, 600, 600] * 2
+}
+df = pd.DataFrame(data)
+
+# Initialize the Dash app
+app = Dash(__name__)
+
+# Define the summary DataFrame
+def create_summary(selected_tenure=None):
+    if selected_tenure is None:
+        summary = df.groupby('tenure').agg({'notional': 'sum'}).reset_index()
+        summary.columns = ['Tenure', 'Grand Total']
+        summary['Range1'] = '<-10'
+        summary['Range2'] = '30+'
+        for ccy in ['EUR', 'USD']:
+            summary[ccy] = df[df['CCY'] == ccy].groupby('tenure')['notional'].sum().reset_index(drop=True)
+    else:
+        # For the selected tenure, show detailed ranges
+        detail = df[df['tenure'] == selected_tenure]
+        summary = detail.groupby(['tenure', 'margin']).agg({'notional': 'sum'}).reset_index()
+        summary['Range1'] = summary['margin'] - 5
+        summary['Range2'] = summary['margin']
+        summary.drop(columns='margin', inplace=True)
+        summary = summary.groupby(['tenure', 'Range1', 'Range2']).agg({'notional': 'sum'}).reset_index()
+        summary['EUR'] = detail[detail['CCY'] == 'EUR'].groupby(['tenure', 'margin'])['notional'].sum().reset_index(drop=True)
+        summary['USD'] = detail[detail['CCY'] == 'USD'].groupby(['tenure', 'margin'])['notional'].sum().reset_index(drop=True)
+        summary['Grand Total'] = summary['notional']
+        summary.drop(columns='notional', inplace=True)
+    return summary
+
+summary_df = create_summary()
+
+# Set up the Dash DataTable
+app.layout = html.Div([
+    dash_table.DataTable(
+        id='table',
+        columns=[{"name": i, "id": i} for i in summary_df.columns],
+        data=summary_df.to_dict('records'),
+        style_table={'overflowX': 'auto'},
+        style_data_conditional=[
+            {'if': {'column_id': 'Tenure'}, 'cursor': 'pointer'}
+        ]
+    )
+])
+
+# Callback for updating the table
+@app.callback(
+    Output('table', 'data'),
+    [Input('table', 'active_cell')],
+    [State('table', 'data')]
+)
+def update_table(active_cell, rows):
+    if active_cell:
+        selected_tenure = rows[active_cell['row']]['Tenure']
+        new_rows = create_summary(selected_tenure).to_dict('records')
+        return new_rows
+    return rows
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
