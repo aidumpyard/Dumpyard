@@ -1,0 +1,64 @@
+import csv
+import os
+import shutil
+import win32com.client as win32
+
+def update_pivot_table(pivot_config):
+    excel = win32.gencache.EnsureDispatch('Excel.Application')
+    try:
+        # Construct the full pivot file path
+        full_pivot_path = os.path.join(pivot_config['pivot_file_path_root'], pivot_config['pivot_file_path_relative'])
+        
+        # Create a temporary directory and copy the pivot file there
+        temp_dir = os.path.join('temp', os.path.dirname(pivot_config['pivot_file_path_relative']))
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_pivot_path = os.path.join(temp_dir, os.path.basename(full_pivot_path))
+        shutil.copy(full_pivot_path, temp_pivot_path)
+
+        # Open the pivot table and data workbooks
+        pivot_wb = excel.Workbooks.Open(temp_pivot_path, ReadOnly=False)
+        data_wb = excel.Workbooks.Open(pivot_config['data_file_path'], ReadOnly=True)
+
+        # Update the pivot table
+        pivot_sheet = pivot_wb.Sheets(pivot_config['pivot_sheet_name'])
+        pivot_table = pivot_sheet.PivotTables(pivot_config['pivot_table_name'])
+        new_data_range = f'[{data_wb.Name}]' + pivot_config['data_sheet_name'] + '!' + pivot_config['data_range']
+        pivot_table.ChangePivotCache(pivot_wb.PivotCaches().Create(SourceType=win32.constants.xlDatabase, SourceData=new_data_range))
+
+        # Write the data file path to the specified cell, if required
+        if pivot_config['WriteCellStatus'].lower() == 'yes':
+            pivot_sheet.Range(pivot_config['WriteCellNumber']).Value = pivot_config['data_file_path']
+
+        # Save the updated pivot workbook
+        pivot_wb.Save()
+        pivot_wb.Close()
+        data_wb.Close(False)
+
+        # Check the status and copy the updated file back to the original location with a new name
+        updated_pivot_path = os.path.join(pivot_config['pivot_file_path_root'], 'updated_' + os.path.basename(full_pivot_path))
+        shutil.copy(temp_pivot_path, updated_pivot_path)
+
+        return "OK"
+    except Exception as e:
+        return f"Not OK - {e}"
+    finally:
+        excel.Quit()
+
+def main():
+    with open('PivotTableUpdate.csv', mode='r') as file:
+        csv_reader = csv.DictReader(file)
+        status_list = []
+        for row in csv_reader:
+            if row['status'].lower() == 'active':
+                status = update_pivot_table(row)
+                row['last_run_status'] = status
+                status_list.append(row)
+
+    with open('pivot_table_status.csv', mode='w', newline='') as file:
+        fieldnames = csv_reader.fieldnames + ['last_run_status']
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(status_list)
+
+if __name__ == '__main__':
+    main()
