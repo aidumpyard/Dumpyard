@@ -1,0 +1,49 @@
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output
+from dash_pptx import Presentation, Slide, add_chart_to_slide
+
+app = dash.Dash(__name__)
+
+app.layout = html.Div([
+    dcc.Graph(id='example-graph'),
+    html.Button("Generate PPTX", id="generate-button")
+])
+
+@app.callback(
+    Output('example-graph', 'figure'),
+    [Input('generate-button', 'n_clicks')]
+)
+def update_graph(n_clicks):
+    fig = {
+        'data': [
+            {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
+            {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': 'NYC'},
+        ],
+        'layout': {
+            'title': 'Dash Data Visualization'
+        }
+    }
+    return fig
+
+@app.callback(
+    Output('download-link', 'href'),
+    [Input('generate-button', 'n_clicks')],
+    [State('example-graph', 'figure')]
+)
+def generate_pptx(n_clicks, figure):
+    if n_clicks is None:
+        raise PreventUpdate
+
+    prs = Presentation()
+    slide = prs.slides.add_slide(prs.slide_layouts[5])
+    add_chart_to_slide(slide, figure)
+
+    file_path = "presentation.pptx"
+    prs.save(file_path)
+
+    return f"/download/{file_path}"
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
