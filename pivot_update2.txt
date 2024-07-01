@@ -1,0 +1,54 @@
+Sub RefreshPivotTables()
+    Dim ws As Worksheet
+    Dim dataWS As Worksheet
+    Dim inputFilePath As String
+    Dim inputFileName As String
+    Dim inputSheetName As String
+    Dim inputPivotTableName As String
+    Dim dataFilePath As String
+    Dim dataFileName As String
+    Dim dataSheetName As String
+    Dim dataColumns As String
+    Dim inputWB As Workbook
+    Dim dataWB As Workbook
+    Dim pivotTable As PivotTable
+    Dim pivotCache As PivotCache
+    
+    ' Read user inputs from cells (change these to your actual cell locations)
+    inputFilePath = ThisWorkbook.Sheets("UserInputs").Range("A2").Value
+    inputFileName = ThisWorkbook.Sheets("UserInputs").Range("B2").Value
+    inputSheetName = ThisWorkbook.Sheets("UserInputs").Range("C2").Value
+    inputPivotTableName = ThisWorkbook.Sheets("UserInputs").Range("D2").Value
+    dataFilePath = ThisWorkbook.Sheets("UserInputs").Range("E2").Value
+    dataFileName = ThisWorkbook.Sheets("UserInputs").Range("F2").Value
+    dataSheetName = ThisWorkbook.Sheets("UserInputs").Range("G2").Value
+    dataColumns = ThisWorkbook.Sheets("UserInputs").Range("H2").Value
+    
+    ' Open the data source file
+    Set dataWB = Workbooks.Open(dataFilePath & "\" & dataFileName)
+    Set dataWS = dataWB.Sheets(dataSheetName)
+    
+    ' Open the input file
+    Set inputWB = Workbooks.Open(inputFilePath & "\" & inputFileName)
+    Set ws = inputWB.Sheets(inputSheetName)
+    
+    ' Find the pivot table
+    Set pivotTable = ws.PivotTables(inputPivotTableName)
+    
+    ' Update the pivot cache with the new data range
+    Set pivotCache = inputWB.PivotCaches.Create( _
+        SourceType:=xlDatabase, _
+        SourceData:=dataWS.Range(dataColumns).Address(External:=True))
+    
+    ' Update the pivot table with the new cache
+    pivotTable.ChangePivotCache pivotCache
+    
+    ' Refresh the pivot table
+    pivotTable.RefreshTable
+    
+    ' Save and close workbooks
+    inputWB.Close SaveChanges:=True
+    dataWB.Close SaveChanges:=False
+    
+    MsgBox "Pivot table refreshed successfully."
+End Sub
