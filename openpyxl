@@ -1,0 +1,39 @@
+from openpyxl import Workbook
+from openpyxl.worksheet.pivot_table import PivotTable, PivotField
+from openpyxl.utils import get_column_letter
+
+# Create a workbook and add data
+wb = Workbook()
+ws = wb.active
+ws.title = "Data"
+
+# Sample data
+data = [
+    ["Region", "Salesperson", "Sales"],
+    ["North", "Alice", 200],
+    ["South", "Bob", 300],
+    ["North", "Alice", 150],
+    ["South", "Bob", 250],
+    ["East", "Charlie", 400],
+    ["West", "David", 500]
+]
+
+for row in data:
+    ws.append(row)
+
+# Define pivot table
+pivot_ws = wb.create_sheet("PivotTable")
+
+pivot = PivotTable(ref="A3", fields=["Region", "Salesperson", "Sales"])  # Pivot Table starts at A3
+pivot.ws = pivot_ws
+pivot.source = f"{ws.title}!A1:C7"  # Define source range
+
+# Assign row fields and values
+pivot.row_fields.append(PivotField(name="Region"))
+pivot.data_fields.append(PivotField(name="Sales", function="sum"))
+
+# Add pivot table to worksheet
+pivot_ws.add_pivot(pivot)
+
+# Save workbook
+wb.save("pivot_table.xlsx")
