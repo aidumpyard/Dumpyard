@@ -1,0 +1,64 @@
+The design pattern you’re using is a modular, layered architecture that incorporates several classic object-oriented design patterns. Here’s a breakdown of the key design approaches used and the patterns they align with:
+
+⸻
+
+1. Layered Architecture (also known as Tiered Architecture)
+
+Category: Architectural Pattern
+Description:
+Your project is divided into logical layers:
+	•	Input Layer (input_handler) – handles raw file reading
+	•	Processing Layer (processing) – handles cleaning, formatting, unifying
+	•	Orchestration Layer (orchestrator) – manages the overall workflow
+	•	Persistence/Output Layer (output) – writes output
+	•	Utilities Layer (utils) – common tools like logging
+
+This promotes separation of concerns and makes it scalable and maintainable.
+
+⸻
+
+2. Factory Pattern
+
+Where: LoaderFactory
+Why: Dynamically chooses the correct file loader (XLSXLoader) at runtime based on the file type.
+Benefit: Makes it easy to support additional formats (CSV, JSON) in the future.
+
+⸻
+
+3. Strategy Pattern (potential enhancement)
+
+Where (could be): cleaner.py, formatter.py
+Why: You can plug in different cleaning or formatting strategies based on file type or content.
+Example: DropNullsCleaner, StandardizeDatesCleaner, etc.
+Benefit: Makes the logic interchangeable and testable.
+
+⸻
+
+4. Command Pattern (used implicitly)
+
+Where: The PipelineManager.run_pipeline() method acts as an orchestrator that encapsulates a series of tasks (loading, cleaning, writing) as a “command”.
+Why: Makes the process resumable and potentially queueable in the future.
+
+⸻
+
+5. Template Method Pattern (optional enhancement)
+
+Where (could be): If you abstract a base class like BaseProcessor with a method process() that runs load -> clean -> format -> unify, you could subclass it for each file type.
+Benefit: Structure with flexibility and override capabilities.
+
+⸻
+
+Summary Table
+
+Pattern Name	Purpose	Where Used / Could Use
+Layered Architecture	Modular and scalable system design	Project structure
+Factory	Dynamic file loader creation	LoaderFactory
+Strategy	Pluggable cleaning/formatting logic	cleaner.py, formatter.py
+Command	Encapsulate execution steps	PipelineManager.run_pipeline
+Template Method	Define a processing skeleton	Future enhancement in processors
+
+
+
+⸻
+
+Let me know if you’d like to implement more of these patterns explicitly—like a base Processor class or dynamic strategy loading.
