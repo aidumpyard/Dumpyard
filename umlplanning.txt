@@ -1,0 +1,50 @@
++-------------------+
+|    TsyBusiness     |
++-------------------+
+| - business_type : str
+| - current_business_process_month : str
+| - last_signoff_month : str
++-------------------+
+| + (pass - methods will be added later)
++-------------------+
+
++-------------------+
+|     FCONFIG        |
++-------------------+
+| + (pass - attributes/methods to be added) 
++-------------------+
+
+               ▲
+               |
++-------------------------------+
+|        business_flow           |
++-------------------------------+
+| - flow_type : str
+| - file_status_dict : dict
++-------------------------------+
+| + (inherits TsyBusiness)
++-------------------------------+
+
+               ▲
+               |
++-------------------------------+
+|          file_layout           |
++-------------------------------+
+| - dir_path : str
+| - year : int
++-------------------------------+
+| + (inherits business_flow)
++-------------------------------+
+
+               ▲
+               |
++-------------------------------+
+|           INPUTFILE            |
++-------------------------------+
+| - expected_file_list : list
+| - uploaded_file_list : list
++-------------------------------+
+| + upload_file(file_name, file_data)
+| + append_to_output(output_file_path)
+| + (inherits file_layout)
++-------------------------------+
