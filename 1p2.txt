@@ -1,0 +1,176 @@
+# Recreate the full folder structure after code execution state reset
+import os
+from pathlib import Path
+
+# Redefine base directory
+base_dir = Path("/mnt/data/forecast_uploader")
+
+# Rebuild directory structure
+folders = [
+    "config",
+    "core",
+    "data",
+    "output",
+    "utils"
+]
+for folder in folders:
+    os.makedirs(base_dir / folder, exist_ok=True)
+
+# Redefine content for each file (as before)
+file_map = {
+    "core/business_flow.py": """\
+from core.upload_file_status import uploadFileStatus
+
+class ProcessFiles:
+    def __init__(self, flow_type, planning_month, file_category):
+        self.flow_type = flow_type
+        self.file_category = file_category
+        self.process_file_status = {}
+
+class ForecastInfile(ProcessFiles):
+    def __init__(self, flow_type, planning_month):
+        super().__init__(flow_type, planning_month, "ForecastInfile")
+
+class ExternalCostInfile(ProcessFiles):
+    def __init__(self, flow_type, planning_month):
+        super().__init__(flow_type, planning_month, "ExternalCostInfile")
+
+class ResidualInfile(ProcessFiles):
+    def __init__(self, flow_type, planning_month):
+        super().__init__(flow_type, planning_month, "ResidualInfile")
+
+class MasterInfile(ProcessFiles):
+    def __init__(self, flow_type, planning_month):
+        super().__init__(flow_type, planning_month, "MasterInfile")
+
+class business_flow:
+    def __init__(self, planning_month):
+        self.flow_type = "Transfer External Cost"
+        self.planning_month = planning_month
+        self.file_status_dict = {
+            'forecast': ForecastInfile(self.flow_type, planning_month),
+            'ext_cost': ExternalCostInfile(self.flow_type, planning_month),
+            'residual': ResidualInfile(self.flow_type, planning_month),
+            'masterfile': MasterInfile(self.flow_type, planning_month)
+        }
+
+    def update_file_status(self, file_category, filetype, file_name, user, status, error_code=None):
+        if file_category in self.file_status_dict:
+            infile_obj = self.file_status_dict[file_category]
+            if filetype not in infile_obj.process_file_status:
+                infile_obj.process_file_status[filetype] = uploadFileStatus(
+                    filetype=filetype,
+                    flow_type=self.flow_type,
+                    planning_month=self.planning_month,
+                    file_category=infile_obj.file_category
+                )
+            infile_obj.process_file_status[filetype].update_status(
+                file_name=file_name,
+                user=user,
+                status=status,
+                error_code=error_code
+            )
+""",
+    "core/enrichment.py": """\
+def enrich_transposed_data(df_transposed, config):
+    df = df_transposed.copy()
+
+    # FTP Division
+    ftp_div = config.FTP_BusinessLevel[['Business', 'Division']].rename(columns={
+        'Business': 'FTP Business',
+        'Division': 'FTP Division'
+    })
+    df = df.merge(ftp_div, on='FTP Business', how='left')
+
+    # FTP Quarter
+    ftp_qtr = config.FTP_Period[['Month', 'FTP Quarter']].rename(columns={
+        'Month': 'Period'
+    })
+    df = df.merge(ftp_qtr, on='Period', how='left')
+
+    # PRM View & Business Call
+    mi_map = config.FTP_Mapping.rename(columns={
+        'FTP Classification': 'FTP Product'
+    })[['FTP Product', 'PRM View', 'Business Call']]
+    df = df.merge(mi_map, on='FTP Product', how='left')
+
+    # Plan Period
+    plan_period = config.FTP_Period[['Month', 'Plan Period']].rename(columns={
+        'Month': 'Period'
+    })
+    df = df.merge(plan_period, on='Period', how='left')
+
+    # Plan Product
+    plan_product = config.FTP_Mapping[['FTP Classification', 'Plan Product']].rename(columns={
+        'FTP Classification': 'FTP Product'
+    })
+    df = df.merge(plan_product, on='FTP Product', how='left')
+
+    # Plan Business
+    plan_bus = config.FTP_Business[['Business', 'Plan Business Level']].rename(columns={
+        'Business': 'FTP Business',
+        'Plan Business Level': 'Plan Business'
+    })
+    df = df.merge(plan_bus, on='FTP Business', how='left')
+
+    return df
+""",
+    "core/uploadfile_dataframe.py": """\
+import pandas as pd
+import os
+
+class uploadfile_dataframe:
+    def __init__(self, file_path, file_type, planning_type, current_process_month, business_flow, config):
+        self.file_type = file_type
+        self.planning_type = planning_type
+        self.current_process_month = current_process_month
+        self.year = current_process_month[-2:]
+        self.flow_type = business_flow.flow_type
+        self.columns = []
+        self.dataframe = None
+        self.business_flow = business_flow
+        self.config = config
+        self.file_path = file_path
+        self.filename = os.path.basename(file_path)
+
+    def load_and_transform(self):
+        df = pd.read_excel(self.file_path)
+        id_vars = ["FTP Business", "FTP Product"]
+        value_vars = [col for col in df.columns if col not in id_vars]
+        df_melted = df.melt(id_vars=id_vars, var_name="Period", value_name="P&L")
+        df_melted["Source"] = self.filename
+        self.dataframe = df_melted
+        return df_melted
+""",
+    "utils/config_watcher.py": """\
+import threading
+import time
+
+def config_watcher(config_obj, check_interval=3600):
+    while True:
+        time.sleep(check_interval)
+        updated = config_obj.check_for_updates()
+        if updated:
+            print("[CONFIG WATCHER] Configuration file has changed. Reloaded.")
+
+def start_config_watcher(config_obj, interval=3600):
+    thread = threading.Thread(target=config_watcher, args=(config_obj, interval), daemon=True)
+    thread.start()
+"""
+}
+
+# Write files
+for file, content in file_map.items():
+    file_path = base_dir / file
+    with open(file_path, "w") as f:
+        f.write(content)
+
+# Zip it up again
+import zipfile
+zip_path = "/mnt/data/forecast_uploader_complete.zip"
+with zipfile.ZipFile(zip_path, 'w') as zipf:
+    for path in base_dir.rglob("*"):
+        if path.is_file():
+            zipf.write(path, arcname=f"forecast_uploader/{path.relative_to(base_dir)}")
+
+zip_path
