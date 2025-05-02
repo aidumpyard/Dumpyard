@@ -1,0 +1,78 @@
+from docx import Document
+
+# Recreate and save the Word documentation file after environment reset
+doc = Document()
+doc.add_heading("Forecast Uploader - Code and Design Documentation", 0)
+
+# Project Overview
+doc.add_heading("Project Overview", level=1)
+doc.add_paragraph("""\
+The Forecast Uploader Automation system is designed to ingest, transpose, enrich, and track forecast input files using a config-driven, auditable Python framework. It supports modular components, dynamic configuration updates, and detailed upload logging.
+""")
+
+# High-Level Structure
+doc.add_heading("High-Level Structure", level=1)
+doc.add_paragraph("""\
+The system is divided into the following modules:
+- main.py: Application entry point
+- config/: Loads and maintains configuration from FTP_Config.xlsx
+- core/: Core logic including file transformation, enrichment, and business flow control
+- utils/: Utility scripts like configuration file watcher
+- data/: Location for config input
+- output/: Processed and enriched output files
+- uploader_ledger.xlsx: Audit ledger for uploads (auto-generated)
+""")
+
+# Component Explanations
+doc.add_heading("Component Explanations", level=1)
+
+sections = {
+    "main.py": "Initializes config, launches background watcher, and provides entry point for future upload processing logic.",
+    "config/config_loader.py": """\
+Reads FTP_Config.xlsx into structured DataFrames:
+- FTP_Business, FTP_Period, FTP_Product, FTP_BusinessLevel, MIMapping, InputFile, Business Transfer
+Maintains snapshots and detects changes for dynamic reloading.""",
+    "core/upload_file_status.py": """\
+Tracks upload metadata (file_type, file_category, filename, user, timestamp, error_code, iteration).
+Writes data to uploader_ledger.xlsx with one sheet per month (Jan'25 to Dec'25).""",
+    "core/business_flow.py": """\
+Defines classes for ForecastInfile, ExternalCostInfile, etc.
+Initializes file tracking objects and manages update of their statuses.""",
+    "core/uploadfile_dataframe.py": """\
+Reads Excel files, transposes period columns to rows, and attaches filename as 'Source'.
+Used as a preprocessing step before enrichment.""",
+    "core/enrichment.py": """\
+Implements business rules for enriching the data using VLOOKUP-style pandas.merge logic.
+Adds fields: FTP Division, FTP Quarter, PRM View, Business Call, Plan Period, Plan Product, Plan Business.""",
+    "utils/config_watcher.py": """\
+Runs in a background thread and checks every hour for changes in FTP_Config.xlsx.
+If updated, it reloads the config object in memory."""
+}
+
+for section, desc in sections.items():
+    doc.add_heading(section, level=2)
+    doc.add_paragraph(desc)
+
+# Key Output Files
+doc.add_heading("Key Output Files", level=1)
+doc.add_paragraph("""\
+- uploader_ledger.xlsx: Automatically logs uploads for each month, enabling iteration tracking and user audit.
+- upload_data_forecast_{month}.xlsx: Transposed and enriched forecast data
+- upload_data_externalcost_{month}.xlsx: Transposed and enriched external cost data
+- Other categories are retained in original format.
+""")
+
+# Future Ideas
+doc.add_heading("Future Additions", level=1)
+doc.add_paragraph("""\
+- UI for file uploads with dropdown (Streamlit or Dash)
+- Automated validation of file formats and contents
+- Slack/email alerts for failed uploads
+- SharePoint or S3 integration
+""")
+
+# Save the document
+doc_path = "/mnt/data/forecast_uploader_documentation.docx"
+doc.save(doc_path)
+
+doc_path
