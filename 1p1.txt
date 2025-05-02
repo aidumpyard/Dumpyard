@@ -1,0 +1,140 @@
+# Populating each file with corresponding full code based on the discussion
+
+file_map = {
+    "main.py": """\
+from config.config_loader import Config
+from utils.config_watcher import start_config_watcher
+
+# Initialize config
+config = Config('data/FTP_Config.xlsx')
+
+# Start config watcher
+start_config_watcher(config)
+
+# Placeholder for where business_flow or upload would be triggered
+print("Uploader initialized. Watching for config changes...")
+""",
+
+    "config/config_loader.py": """\
+import pandas as pd
+
+class Config:
+    def __init__(self, config_path='data/FTP_Config.xlsx'):
+        self.config_path = config_path
+        self._load_config()
+        self.last_snapshot = self._get_config_snapshot()
+
+    def _load_config(self):
+        xl = pd.ExcelFile(self.config_path)
+        self.FTP_Business = xl.parse('FTP_Business')
+        self.FTP_Period = xl.parse('FTP_Period')
+        self.FTP_Product = xl.parse('FTP_Product')
+        self.FTP_BusinessLevel = xl.parse('FTP_BusinessLevel')
+        self.FTP_Mapping = xl.parse('MIMapping')
+        self.FTP_Sequence = xl.parse('InputFile')
+        self.FTP_FileTypeOptions = xl.parse('Business Transfer')
+
+    def _get_config_snapshot(self):
+        return {
+            "FTP_Business": self.FTP_Business.to_json(),
+            "FTP_Period": self.FTP_Period.to_json(),
+            "FTP_Product": self.FTP_Product.to_json(),
+            "FTP_BusinessLevel": self.FTP_BusinessLevel.to_json(),
+            "FTP_Mapping": self.FTP_Mapping.to_json(),
+            "FTP_Sequence": self.FTP_Sequence.to_json(),
+            "FTP_FileTypeOptions": self.FTP_FileTypeOptions.to_json()
+        }
+
+    def check_for_updates(self):
+        xl = pd.ExcelFile(self.config_path)
+        new_snapshot = {
+            "FTP_Business": xl.parse('FTP_Business').to_json(),
+            "FTP_Period": xl.parse('FTP_Period').to_json(),
+            "FTP_Product": xl.parse('FTP_Product').to_json(),
+            "FTP_BusinessLevel": xl.parse('FTP_BusinessLevel').to_json(),
+            "FTP_Mapping": xl.parse('MIMapping').to_json(),
+            "FTP_Sequence": xl.parse('InputFile').to_json(),
+            "FTP_FileTypeOptions": xl.parse('Business Transfer').to_json()
+        }
+        if new_snapshot != self.last_snapshot:
+            self._load_config()
+            self.last_snapshot = self._get_config_snapshot()
+            return True
+        return False
+
+    def get_available_filetypes(self):
+        return self.FTP_FileTypeOptions['Generic Name'].dropna().unique().tolist()
+""",
+
+    "core/upload_file_status.py": """\
+import pandas as pd
+from datetime import datetime
+import os
+
+class uploadFileStatus:
+    def __init__(self, filetype, flow_type, planning_month, file_category, ledger_path='uploader_ledger.xlsx'):
+        self.filetype = filetype
+        self.flow_type = flow_type
+        self.filenameuploadedby = None
+        self.lastupdateddatetime = None
+        self.isuploaded = False
+        self.fileiteration = 0
+        self.error_code = None
+        self.planning_month = planning_month
+        self.ledger_path = ledger_path
+        self.file_category = file_category
+        self._initialize_ledger_sheet()
+
+    def _initialize_ledger_sheet(self):
+        if not os.path.exists(self.ledger_path):
+            with pd.ExcelWriter(self.ledger_path, engine='openpyxl') as writer:
+                for month in [f"{m}'25" for m in ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']]:
+                    df = pd.DataFrame(columns=[
+                        'file_type', 'file_category', 'file_name', 'upload_status',
+                        'user', 'error_code', 'datetime', 'iteration'
+                    ])
+                    df.to_excel(writer, sheet_name=month, index=False)
+
+    def update_status(self, file_name, user, status, error_code=None):
+        self.filenameuploadedby = user
+        self.lastupdateddatetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.isuploaded = status.lower() == 'success'
+        self.error_code = error_code
+
+        xl = pd.ExcelFile(self.ledger_path)
+        df = xl.parse(self.planning_month)
+
+        mask = df['file_type'] == self.filetype
+        if df.loc[mask].empty:
+            iteration = 1
+            new_row = pd.DataFrame([{
+                'file_type': self.filetype,
+                'file_category': self.file_category,
+                'file_name': file_name,
+                'upload_status': status,
+                'user': user,
+                'error_code': error_code,
+                'datetime': self.lastupdateddatetime,
+                'iteration': iteration
+            }])
+            df = pd.concat([df, new_row], ignore_index=True)
+        else:
+            current_iter = df.loc[mask, 'iteration'].max()
+            df.loc[mask, ['file_name', 'upload_status', 'user', 'error_code', 'datetime', 'file_category']] = [
+                file_name, status, user, error_code, self.lastupdateddatetime, self.file_category
+            ]
+            df.loc[mask, 'iteration'] = current_iter + 1 if not pd.isna(current_iter) else 1
+            self.fileiteration = df.loc[mask, 'iteration'].values[0]
+
+        with pd.ExcelWriter(self.ledger_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df.to_excel(writer, sheet_name=self.planning_month, index=False)
+"""
+}
+
+# Write these contents to files
+for file, content in file_map.items():
+    file_path = base_dir / file
+    with open(file_path, "w") as f:
+        f.write(content)
+
+file_map.keys()
