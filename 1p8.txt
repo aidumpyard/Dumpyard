@@ -1,0 +1,16 @@
+class business_flow:
+    def __init__(self, flow_type):
+        self.flow_type = flow_type
+        self.file_status_dict = {
+            'forecast': ForecastInfile(),
+            'ext_cost': ExternalCostInfile(),
+            'residual': ResidualInfile(),
+            'masterfile': MasterInfile()
+        }
+
+    def get_next_iteration(self, category, file_type):
+        if category in self.file_status_dict:
+            file_obj = self.file_status_dict[category]
+            file_status = file_obj.process_file_status.get(file_type)
+            return file_status.fileiteration + 1 if file_status else 1
+        return 1
