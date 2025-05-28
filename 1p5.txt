@@ -1,0 +1,29 @@
+def update_monthly_generic_enriched(df_new, file_type, planning_month, config, output_dir='output'):
+    filename = f"generic_enriched_{planning_month.replace(\"'\", '')}.xlsx"
+    output_path = os.path.join(output_dir, filename)
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    if os.path.exists(output_path):
+        df_existing = pd.read_excel(output_path)
+        df_existing = df_existing[df_existing['File Type'] != file_type]
+    else:
+        df_existing = pd.DataFrame()
+
+    df_new['File Type'] = file_type
+    df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+
+    # Join with InputFile sheet to get sequence
+    seq_df = config.FTP_Sequence[['file_type', 'Sequence']].rename(columns={'file_type': 'File Type'})
+    df_combined = df_combined.merge(seq_df, on='File Type', how='left')
+
+    df_combined.sort_values(by='Sequence', inplace=True)
+    df_combined.drop(columns=['Sequence'], inplace=True)
+
+    df_combined.to_excel(output_path, index=False)
+
+
+xxxx
+from utils.update_generic_enriched_file import update_monthly_generic_enriched
+
+update_monthly_generic_enriched(df_enriched, filetype, planning_month, config)
