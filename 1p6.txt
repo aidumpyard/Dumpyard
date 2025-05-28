@@ -1,0 +1,15 @@
+
+
+@app.callback(
+    Output('monthly-generic-download', 'children'),
+    [Input('upload-table', 'data')],
+    [State('planning-month-dropdown', 'value')]
+)
+def show_monthly_enriched_download(data, planning_month):
+    if not data:
+        return ""
+    month_file = f"generic_enriched_{planning_month.replace("'", '')}.xlsx"
+    path = os.path.join('output', month_file)
+    if os.path.exists(path):
+        return html.A("Download Monthly Generic Enriched File", href=f"/download/{month_file}", target="_blank")
+    return ""
