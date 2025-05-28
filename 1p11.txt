@@ -1,0 +1,119 @@
+# Re-saving the 4 requested files after environment reset
+
+files = {
+    "file_saver_utils.py": """\
+import os
+import shutil
+import pandas as pd
+from datetime import datetime
+
+def get_year_and_month(planning_month):
+    month_map = {
+        'Jan': 'January', 'Feb': 'February', 'Mar': 'March', 'Apr': 'April',
+        'May': 'May', 'Jun': 'June', 'Jul': 'July', 'Aug': 'August',
+        'Sep': 'September', 'Oct': 'October', 'Nov': 'November', 'Dec': 'December'
+    }
+    short_month = planning_month[:3]
+    year_suffix = planning_month[-2:]
+    full_year = f"20{year_suffix}"
+    full_month = month_map.get(short_month, short_month)
+    return full_year, full_month
+
+def save_with_iteration(df, file_type, iteration, planning_month, status="Success", base_dir="output"):
+    year, month = get_year_and_month(planning_month)
+    month_dir = os.path.join(base_dir, year, month)
+    archive_dir = os.path.join(month_dir, "archive")
+    archive_log = os.path.join(month_dir, "archive_log.csv")
+
+    os.makedirs(month_dir, exist_ok=True)
+    os.makedirs(archive_dir, exist_ok=True)
+
+    new_filename = f"{file_type}_v{iteration}.xlsx"
+    file_path = os.path.join(month_dir, new_filename)
+
+    for existing_file in os.listdir(month_dir):
+        if existing_file.startswith(file_type) and existing_file.endswith('.xlsx') and existing_file != new_filename:
+            src_path = os.path.join(month_dir, existing_file)
+            dst_path = os.path.join(archive_dir, existing_file)
+            shutil.move(src_path, dst_path)
+            log_archived_file(archive_log, src_path, dst_path, file_type, iteration, "Archived")
+
+    df.to_excel(file_path, index=False)
+    return file_path
+
+def log_archived_file(log_path, original_path, archive_path, file_type, iteration, status):
+    log_entry = {
+        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "File Type": file_type,
+        "Iteration": iteration,
+        "Status": status,
+        "Original File Path": original_path,
+        "Archived File Path": archive_path
+    }
+    if os.path.exists(log_path):
+        log_df = pd.read_csv(log_path)
+        log_df = pd.concat([log_df, pd.DataFrame([log_entry])], ignore_index=True)
+    else:
+        log_df = pd.DataFrame([log_entry])
+    log_df.to_csv(log_path, index=False)
+""",
+    "update_generic_enriched_file.py": """\
+import os
+import pandas as pd
+
+def update_monthly_generic_enriched(new_data, file_type, planning_month, config, base_dir='output'):
+    month_key = planning_month.replace("'", "")
+    enriched_file_path = os.path.join(base_dir, f"generic_enriched_{month_key}.xlsx")
+
+    new_data['file_type'] = file_type
+
+    if os.path.exists(enriched_file_path):
+        existing_df = pd.read_excel(enriched_file_path)
+        existing_df = existing_df[existing_df['file_type'] != file_type]
+        combined_df = pd.concat([existing_df, new_data], ignore_index=True)
+    else:
+        combined_df = new_data.copy()
+
+    sequence_df = config.FTP_Sequence[['file_type', 'Sequence']]
+    combined_df = combined_df.merge(sequence_df, on='file_type', how='left')
+    combined_df.sort_values(by=['Sequence'], inplace=True)
+    combined_df.drop(columns=['Sequence'], inplace=True)
+
+    combined_df.to_excel(enriched_file_path, index=False)
+""",
+    "enhanced_upload_ledger_utils.py": """\
+import pandas as pd
+import os
+
+def load_upload_ledger_from_config(config, planning_month, ledger_file='uploader_ledger.xlsx'):
+    df_config = config.FTP_Sequence[['file_type', 'flow_type', 'Sequence']].copy()
+    df_config.sort_values(by='Sequence', inplace=True)
+
+    if os.path.exists(ledger_file):
+        xl = pd.ExcelFile(ledger_file)
+        if planning_month in xl.sheet_names:
+            df_ledger = xl.parse(planning_month)
+            df_merged = df_config.merge(df_ledger, on='file_type', how='left')
+            df_merged['upload_status'] = df_merged['upload_status'].fillna('Yet to Upload')
+            df_merged['iteration'] = df_merged['iteration'].fillna(0).astype(int)
+        else:
+            df_merged = df_config.copy()
+            df_merged['upload_status'] = 'Yet to Upload'
+            df_merged['iteration'] = 0
+    else:
+        df_merged = df_config.copy()
+        df_merged['upload_status'] = 'Yet to Upload'
+        df_merged['iteration'] = 0
+
+    return df_merged[['file_type', 'iteration', 'upload_status']]
+"""
+}
+
+download_links = []
+for filename, code in files.items():
+    path = f"/mnt/data/{filename}"
+    with open(path, "w") as f:
+        f.write(code)
+    download_links.append(path)
+
+download_links
