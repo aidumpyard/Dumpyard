@@ -1,0 +1,20 @@
+import pandas as pd
+
+# Load your Excel file (adjust path as needed)
+df = pd.read_excel("your_file.xlsx")
+
+# Create pivot table
+pivot_df = pd.pivot_table(
+    df,
+    index=['FTP Product', 'FTP Division', 'Plan Business'],
+    columns='Period',
+    values='P&L',
+    aggfunc='sum',
+    fill_value=0  # Optional: Replace NaN with 0
+)
+
+# To display or save the pivot table
+print(pivot_df)
+
+# Optional: Save to Excel
+pivot_df.to_excel("pivot_output.xlsx")
