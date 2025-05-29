@@ -1,0 +1,68 @@
+
+
+
+# Include 'Actual' and 'Temporary' manually in dropdown
+file_types_from_config = config.get_available_filetypes()
+file_type_options = [{'label': ft, 'value': ft} for ft in file_types_from_config + ['Actual', 'Temporary']]
+
+
+        if filetype in ['Actual', 'Temporary']:
+        from utils.handle_actual_temp_file import save_actual_or_temp_file
+
+        try:
+            data_file, pivot_file = save_actual_or_temp_file(temp_path, filetype, planning_month)
+            iteration = 1  # Fixed at 1 for these types, or you can add dynamic tracking
+            status = "Success"
+        except Exception as e:
+            status = f"Failed: {str(e)}"
+            iteration = 0
+
+        # Update ledger manually for these
+        update_ledger_for_actual_temp(filetype, planning_month, uploaded_by, iteration, status)
+
+    else:
+        # Normal flow
+        updf = uploadfile_dataframe(temp_path, filetype, "Forecast", planning_month, flow, config)
+        df_transposed = updf.load_and_transform()
+        df_enriched = enrich_transposed_data(df_transposed, config)
+
+        iteration = flow.get_next_iteration(file_category, filetype)
+        enriched_path = save_with_iteration(df_enriched, filetype, iteration, planning_month, status="Success")
+        flow.update_file_status(file_category, filetype, os.path.basename(enriched_path), uploaded_by, "Success", iteration)
+        update_monthly_generic_enriched(df_enriched, filetype, planning_month, config)
+
+
+
+
+
+   def update_ledger_for_actual_temp(file_type, planning_month, uploaded_by, iteration, status, ledger_file='uploader_ledger.xlsx'):
+    from openpyxl import load_workbook
+    from openpyxl.utils.dataframe import dataframe_to_rows
+
+    new_entry = pd.DataFrame([{
+        'file_type': file_type,
+        'upload_status': status,
+        'iteration': iteration,
+        'uploaded_by': uploaded_by,
+        'datetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }])
+
+    if os.path.exists(ledger_file):
+        xl = pd.ExcelFile(ledger_file)
+        if planning_month in xl.sheet_names:
+            df_existing = xl.parse(planning_month)
+            df_existing = df_existing[df_existing['file_type'] != file_type]
+            df_combined = pd.concat([df_existing, new_entry], ignore_index=True)
+        else:
+            df_combined = new_entry
+    else:
+        df_combined = new_entry
+
+    with pd.ExcelWriter(ledger_file, engine='openpyxl', mode='a' if os.path.exists(ledger_file) else 'w') as writer:
+        if os.path.exists(ledger_file):
+            book = load_workbook(ledger_file)
+            writer.book = book
+            if planning_month in book.sheetnames:
+                idx = book.sheetnames.index(planning_month)
+                std = book.remove(book.worksheets[idx])
+        df_combined.to_excel(writer, sheet_name=planning_month, index=False)
