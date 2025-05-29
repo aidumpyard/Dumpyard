@@ -1,0 +1,45 @@
+handle_actual_temp_file.py
+import os
+import pandas as pd
+from datetime import datetime
+from utils.file_saver_utils import get_year_and_month, log_archived_file
+
+def validate_actual_file(df):
+    required_columns = ["FTP Period", "FTP Business", "FTP Division", "Plan Product"]
+    return all(col in df.columns for col in required_columns)
+
+def validate_temp_file(df):
+    required_columns = ["FTP Period", "FTP Clacification", "FTP Division", "Plan Product"]
+    return all(col in df.columns for col in required_columns)
+
+def save_actual_or_temp_file(file_path, file_type, planning_month, base_dir="output"):
+    year, month = get_year_and_month(planning_month)
+    month_dir = os.path.join(base_dir, year, month)
+    os.makedirs(month_dir, exist_ok=True)
+
+    if file_type == "Actual":
+        sheet_name = "Actual"
+        filename_base = "Actual"
+    elif file_type == "Temporary":
+        sheet_name = "FC"
+        filename_base = "Temporary"
+    else:
+        raise ValueError("Invalid file type for this handler.")
+
+    df = pd.read_excel(file_path, sheet_name=sheet_name)
+
+    if file_type == "Actual" and not validate_actual_file(df):
+        raise ValueError("Actual file is missing required columns.")
+    if file_type == "Temporary" and not validate_temp_file(df):
+        raise ValueError("Temporary file is missing required columns.")
+
+    # Save main file
+    data_filename = f"{filename_base}_{planning_month.replace("'", '')}.xlsx"
+    df.to_excel(os.path.join(month_dir, data_filename), index=False)
+
+    # Create and save pivot
+    pivot = df.pivot_table(index=["FTP Division"], columns=["FTP Period"], aggfunc="size", fill_value=0)
+    pivot_filename = f"{filename_base}_pivot_{planning_month.replace("'", '')}.xlsx"
+    pivot.to_excel(os.path.join(month_dir, pivot_filename))
+
+    return data_filename, pivot_filename
