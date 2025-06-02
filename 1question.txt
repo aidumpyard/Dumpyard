@@ -1,0 +1,199 @@
+Here are the full Easy-level LeetCode-style questions along with their Python solutions:
+
+⸻
+
+🟢 1. Two Sum
+
+Question:
+Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
+You may assume that each input would have exactly one solution, and you may not use the same element twice.
+
+Example:
+
+Input: nums = [2, 7, 11, 15], target = 9  
+Output: [0, 1]  # Because nums[0] + nums[1] = 2 + 7 = 9
+
+Python Solution:
+
+def twoSum(nums, target):
+    hashmap = {}
+    for i, num in enumerate(nums):
+        diff = target - num
+        if diff in hashmap:
+            return [hashmap[diff], i]
+        hashmap[num] = i
+
+
+⸻
+
+🟢 2. Valid Parentheses
+
+Question:
+Given a string s containing just the characters ()[]{}, determine if the input string is valid.
+An input string is valid if:
+	•	Open brackets are closed by the same type of brackets.
+	•	Open brackets are closed in the correct order.
+
+Example:
+
+Input: s = "([]){}"  
+Output: True
+
+Python Solution:
+
+def isValid(s):
+    stack = []
+    mapping = {')': '(', ']': '[', '}': '{'}
+    for char in s:
+        if char in mapping:
+            top = stack.pop() if stack else '#'
+            if mapping[char] != top:
+                return False
+        else:
+            stack.append(char)
+    return not stack
+
+
+⸻
+
+🟢 3. Maximum Depth of Binary Tree
+
+Question:
+Given the root of a binary tree, return its maximum depth.
+The maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.
+
+Example:
+
+Input: root = [3,9,20,null,null,15,7]  
+Output: 3
+
+Python Solution:
+
+def maxDepth(root):
+    if not root:
+        return 0
+    return 1 + max(maxDepth(root.left), maxDepth(root.right))
+
+
+⸻
+
+🟢 4. Merge Two Sorted Lists
+
+Question:
+You are given the heads of two sorted linked lists l1 and l2.
+Merge the two lists into one sorted linked list and return the head of the new list.
+
+Example:
+
+Input: l1 = [1,2,4], l2 = [1,3,4]  
+Output: [1,1,2,3,4,4]
+
+Python Solution:
+
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def mergeTwoLists(l1, l2):
+    dummy = ListNode()
+    current = dummy
+    while l1 and l2:
+        if l1.val < l2.val:
+            current.next = l1
+            l1 = l1.next
+        else:
+            current.next = l2
+            l2 = l2.next
+        current = current.next
+    current.next = l1 if l1 else l2
+    return dummy.next
+
+
+⸻
+
+🟢 5. Best Time to Buy and Sell Stock
+
+Question:
+You are given an array prices where prices[i] is the price of a given stock on the i-th day.
+You want to maximize your profit by choosing a single day to buy one stock and a different day in the future to sell it.
+Return the maximum profit you can achieve from this transaction.
+
+Example:
+
+Input: prices = [7,1,5,3,6,4]  
+Output: 5  # Buy at 1, sell at 6
+
+Python Solution:
+
+def maxProfit(prices):
+    min_price = float('inf')
+    max_profit = 0
+    for price in prices:
+        min_price = min(min_price, price)
+        max_profit = max(max_profit, price - min_price)
+    return max_profit
+
+
+⸻
+
+🟢 6. Remove Duplicates from Sorted Array
+
+Question:
+Given an integer array nums sorted in non-decreasing order, remove the duplicates in-place such that each unique element appears only once.
+Return the number of unique elements.
+
+Example:
+
+Input: nums = [1,1,2]  
+Output: 2  # Unique array: [1, 2]
+
+Python Solution:
+
+def removeDuplicates(nums):
+    if not nums:
+        return 0
+    i = 0
+    for j in range(1, len(nums)):
+        if nums[i] != nums[j]:
+            i += 1
+            nums[i] = nums[j]
+    return i + 1
+
+
+⸻
+
+🟢 7. Implement strStr()
+
+Question:
+Return the index of the first occurrence of needle in haystack, or -1 if needle is not part of haystack.
+
+Example:
+
+Input: haystack = "hello", needle = "ll"  
+Output: 2
+
+Python Solution:
+
+def strStr(haystack, needle):
+    return haystack.find(needle)
+
+
+⸻
+
+🟢 8. Intersection of Two Arrays
+
+Question:
+Given two integer arrays nums1 and nums2, return an array of their intersection.
+Each element in the result must be unique.
+
+Example:
+
+Input: nums1 = [1,2,2,1], nums2 = [2,2]  
+Output: [2]
+
+Python Solution:
+
+def intersection(nums1, nums2):
+    return list(set(nums1) & set(nums2))
+
