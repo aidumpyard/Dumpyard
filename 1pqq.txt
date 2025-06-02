@@ -1,0 +1,137 @@
+Here are the 8 Easy-Level Python DSA questions with their answers (solutions in Python):
+
+⸻
+
+🟢 1. Two Sum
+
+Problem:
+Return indices of two numbers in nums that add up to target.
+
+def twoSum(nums, target):
+    hashmap = {}
+    for i, num in enumerate(nums):
+        diff = target - num
+        if diff in hashmap:
+            return [hashmap[diff], i]
+        hashmap[num] = i
+
+
+⸻
+
+🟢 2. Valid Parentheses
+
+Problem:
+Check if the brackets in the string are valid.
+
+def isValid(s):
+    stack = []
+    mapping = {')': '(', ']': '[', '}': '{'}
+    for char in s:
+        if char in mapping:
+            top = stack.pop() if stack else '#'
+            if mapping[char] != top:
+                return False
+        else:
+            stack.append(char)
+    return not stack
+
+
+⸻
+
+🟢 3. Maximum Depth of Binary Tree
+
+Problem:
+Find the maximum depth of a binary tree.
+
+def maxDepth(root):
+    if not root:
+        return 0
+    return 1 + max(maxDepth(root.left), maxDepth(root.right))
+
+
+⸻
+
+🟢 4. Merge Two Sorted Lists
+
+Problem:
+Merge two sorted linked lists into one sorted list.
+
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def mergeTwoLists(l1, l2):
+    dummy = ListNode()
+    current = dummy
+    while l1 and l2:
+        if l1.val < l2.val:
+            current.next = l1
+            l1 = l1.next
+        else:
+            current.next = l2
+            l2 = l2.next
+        current = current.next
+    current.next = l1 if l1 else l2
+    return dummy.next
+
+
+⸻
+
+🟢 5. Best Time to Buy and Sell Stock
+
+Problem:
+Maximize profit by choosing a single buy and sell day.
+
+def maxProfit(prices):
+    min_price = float('inf')
+    max_profit = 0
+    for price in prices:
+        min_price = min(min_price, price)
+        max_profit = max(max_profit, price - min_price)
+    return max_profit
+
+
+⸻
+
+🟢 6. Remove Duplicates from Sorted Array
+
+Problem:
+Remove duplicates in-place and return new length.
+
+def removeDuplicates(nums):
+    if not nums:
+        return 0
+    i = 0
+    for j in range(1, len(nums)):
+        if nums[i] != nums[j]:
+            i += 1
+            nums[i] = nums[j]
+    return i + 1
+
+
+⸻
+
+🟢 7. Implement strStr()
+
+Problem:
+Return index of first occurrence of needle in haystack.
+
+def strStr(haystack, needle):
+    return haystack.find(needle)
+
+
+⸻
+
+🟢 8. Intersection of Two Arrays
+
+Problem:
+Return unique intersection of two arrays.
+
+def intersection(nums1, nums2):
+    return list(set(nums1) & set(nums2))
+
+
+⸻
+
+Let me know if you want explanations or want to practice medium/hard ones next!
