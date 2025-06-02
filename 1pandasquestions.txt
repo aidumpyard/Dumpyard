@@ -1,0 +1,123 @@
+Here are 10 Pandas interview questions with problem-solving examples — a mix of beginner to intermediate difficulty levels:
+
+⸻
+
+🟢 1. How do you read a CSV file using Pandas?
+
+Problem: Read a file named data.csv into a DataFrame.
+
+Solution:
+
+import pandas as pd
+
+df = pd.read_csv('data.csv')
+print(df.head())
+
+
+⸻
+
+🟢 2. How do you filter rows based on a condition?
+
+Problem: From a DataFrame df, select rows where the column Age > 30.
+
+Solution:
+
+df_filtered = df[df['Age'] > 30]
+print(df_filtered)
+
+
+⸻
+
+🟢 3. How to group data and apply aggregation?
+
+Problem: Given a column Department and Salary, compute average salary per department.
+
+Solution:
+
+avg_salary = df.groupby('Department')['Salary'].mean()
+print(avg_salary)
+
+
+⸻
+
+🟢 4. How to handle missing values in a DataFrame?
+
+Problem: Fill missing values in column Age with the mean of that column.
+
+Solution:
+
+df['Age'].fillna(df['Age'].mean(), inplace=True)
+
+
+⸻
+
+🟢 5. How do you create a new column based on existing columns?
+
+Problem: Create a new column Total as the sum of Math and Science.
+
+Solution:
+
+df['Total'] = df['Math'] + df['Science']
+
+
+⸻
+
+🟡 6. How to apply a custom function to a column?
+
+Problem: Apply a function that labels age as ‘Senior’ if age >= 60, else ‘Adult’.
+
+Solution:
+
+def age_label(age):
+    return 'Senior' if age >= 60 else 'Adult'
+
+df['AgeGroup'] = df['Age'].apply(age_label)
+
+
+⸻
+
+🟡 7. How to merge two DataFrames?
+
+Problem: Merge two DataFrames df1 and df2 on column ID.
+
+Solution:
+
+merged = pd.merge(df1, df2, on='ID', how='inner')
+
+
+⸻
+
+🟡 8. How to pivot a DataFrame?
+
+Problem: Pivot a DataFrame where Date is index, Product is columns, and values are Sales.
+
+Solution:
+
+pivoted = df.pivot(index='Date', columns='Product', values='Sales')
+
+
+⸻
+
+🟡 9. How to sort a DataFrame by multiple columns?
+
+Problem: Sort by Department ascending and Salary descending.
+
+Solution:
+
+df_sorted = df.sort_values(by=['Department', 'Salary'], ascending=[True, False])
+
+
+⸻
+
+🔴 10. How to get the top N rows per group?
+
+Problem: From a sales DataFrame, get the top 2 selling products per Region.
+
+Solution:
+
+top_n = df.groupby('Region').apply(lambda x: x.nlargest(2, 'Sales')).reset_index(drop=True)
+
+
+⸻
+
+Would you like a downloadable notebook or more advanced (real-world-style) Pandas case studies next?
